@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BAW 幸運大轉盤｜手機抽獎</title>
+<style>
+:root{--navy:#10233f;--blue:#1d5b9e;--gold:#ffd36a;--cream:#fff9ed;--red:#e94b4b}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#fff;background:radial-gradient(circle at 50% 15%,#315f91 0,#142b4a 42%,#081323 100%);overflow-x:hidden}
+.wrap{max-width:1080px;margin:auto;padding:28px 20px 48px;text-align:center;position:relative}
+.brand{display:inline-flex;align-items:center;gap:10px;border:1px solid #ffffff45;background:#ffffff10;border-radius:999px;padding:8px 17px;font-size:13px;letter-spacing:3px;color:#d8e9ff}
+h1{font-size:clamp(30px,5vw,52px);line-height:1.12;margin:20px 0 10px;font-weight:900;letter-spacing:2px}
+h1 span{color:var(--gold);text-shadow:0 0 25px #ffd36a55}
+.subtitle{color:#d4e1f2;margin:0 auto 26px;line-height:1.8}
+.game{display:grid;grid-template-columns:minmax(300px,560px) minmax(250px,340px);gap:35px;align-items:center;justify-content:center}
+.wheel-area{position:relative;width:min(100%,560px);margin:auto;filter:drop-shadow(0 22px 30px #0006)}
+canvas{display:block;width:100%;height:auto}
+.pointer{position:absolute;z-index:3;top:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:42px solid var(--gold);filter:drop-shadow(0 4px 3px #0008)}
+.hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:18%;aspect-ratio:1;border-radius:50%;background:linear-gradient(145deg,#fff4c7,#e5a82f);border:6px solid #fff7df;display:flex;align-items:center;justify-content:center;color:#17304d;font-weight:1000;font-size:clamp(12px,2vw,20px);box-shadow:0 4px 12px #0006;pointer-events:none}
+.panel{background:#ffffff10;border:1px solid #ffffff25;border-radius:24px;padding:26px 23px;text-align:left;backdrop-filter:blur(8px)}
+.panel h2{font-size:20px;margin:0 0 14px}
+.prize-list{display:grid;gap:9px;margin-bottom:22px}
+.prize{display:flex;align-items:center;gap:11px;background:#ffffff0d;border:1px solid #ffffff14;border-radius:12px;padding:10px 12px;font-size:14px}
+.prize .emoji{font-size:21px;width:30px;text-align:center}
+.prize strong{margin-left:auto;color:#ffe4a0;font-size:13px;white-space:nowrap}
+.prize.big{background:linear-gradient(100deg,#8b5a13aa,#f5c65c25);border-color:#ffd36a88}
+button{font:inherit;cursor:pointer;border:0}
+.spin{width:100%;border-radius:14px;padding:16px 18px;background:linear-gradient(100deg,#ffe69a,#ffbd45);color:#172941;font-size:19px;font-weight:900;box-shadow:0 7px 0 #a76b1d;transition:transform .15s,filter .15s}
+.spin:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.spin:active{transform:translateY(3px);box-shadow:0 4px 0 #a76b1d}
+.spin:disabled{opacity:.6;cursor:wait}
+.note{font-size:12px;color:#c2d1e5;line-height:1.7;margin:16px 0 0}
+.result{display:none;position:fixed;inset:0;z-index:10;background:#06101bd9;align-items:center;justify-content:center;padding:20px}
+.result.show{display:flex}
+.result-card{position:relative;overflow:hidden;width:min(100%,480px);padding:38px 28px 30px;text-align:center;border-radius:28px;background:linear-gradient(145deg,#fffdf4,#f4e5c4);color:#172941;box-shadow:0 25px 90px #0008;animation:pop .45s cubic-bezier(.2,1.5,.5,1)}
+.result-card .trophy{font-size:58px;line-height:1.2}
+.result-card h2{font-size:28px;margin:10px 0}
+.result-card p{color:#4b5c70;line-height:1.8;margin:8px 0 24px}
+.result-card .again{border-radius:12px;padding:13px 24px;background:#18385d;color:#fff;font-weight:800}
+.result-card.jackpot{background:linear-gradient(145deg,#fff5c8,#f6c34e);border:3px solid #fff2b5}
+.result-card.jackpot h2{font-size:34px;color:#8a3a10}
+@keyframes pop{from{transform:scale(.65);opacity:0}to{transform:scale(1);opacity:1}}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:11}
+.footer{margin-top:30px;font-size:12px;color:#9db1ca}
+@media(max-width:800px){.game{grid-template-columns:1fr;gap:26px}.wheel-area{width:min(100%,500px)}.panel{max-width:500px;width:100%;margin:auto}.wrap{padding-top:20px}h1{margin-top:16px}}
+</style>
+<meta name="theme-color" content="#10233f">
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<main class="wrap">
+  <div class="brand">BAW · 專利空調氣墊鞋</div>
+  <h1>幸運大轉盤<br><span>轉出你的好運！</span></h1>
+  <p class="subtitle">轉一下，看看今天的幸運獎落誰家。<br>最大獎「BAW 鞋款一雙」全場限量一雙！</p>
+  <section class="game">
+    <div class="wheel-area">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="900" height="900" aria-label="抽獎轉盤"></canvas>
+      <div class="hub">BAW<br>LUCKY</div>
+    </div>
+    <aside class="panel">
+      <h2>🎁 今日獎項</h2>
+      <div class="prize-list" id="prizeList">
+        <div class="prize"><span class="emoji">🧴</span><span>鞋油</span></div>
+        <div class="prize"><span class="emoji">👞</span><span>鞋把</span></div>
+        <div class="prize"><span class="emoji">🧦</span><span>襪子</span></div>
+        <div class="prize"><span class="emoji">🎟️</span><span>現金折扣 $500</span></div>
+        <div class="prize"><span class="emoji">💵</span><span>現金折扣 $600</span></div>
+        <div class="prize"><span class="emoji">💰</span><span>現金折扣 $800</span></div>
+        <div class="prize big"><span class="emoji">🏆</span><span>最大獎：BAW 鞋款一雙</span><strong>限量 1 名</strong></div>
+      </div>
+      <button class="spin" id="spinBtn">🎯 開始抽獎</button>
+      <p class="note" id="status">不限次數、現場自由抽。上線後可設定 Firebase 共用狀態，讓所有手機同步唯一大獎。</p>
+    </aside>
+  </section>
+  <div class="footer">BAW 幸運大轉盤 · 祝你今天好運連連</div>
+</main>
+<div class="result" id="result" role="dialog" aria-modal="true">
+  <div class="result-card" id="resultCard">
+    <div class="trophy" id="resultEmoji">🎉</div>
+    <h2 id="resultTitle">恭喜中獎！</h2>
+    <p id="resultText">你的幸運獎項是……</p>
+    <button class="again" id="closeResult">太棒了！</button>
+  </div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// 上線設定：依 README 設定 Firebase 後，所有手機會共用最大獎狀態。
+const firebaseConfig = {
+  apiKey: "請填入 Firebase apiKey",
+  authDomain: "請填入 Firebase authDomain",
+  projectId: "請填入 Firebase projectId",
+  appId: "請填入 Firebase appId"
+};
+const useSharedJackpot = Object.values(firebaseConfig).every(v => v && !String(v).includes("請填入"));
+let sharedJackpotClaimed = false;
+
+const initialPrizes = [
+  {name:"鞋油", emoji:"🧴", color:"#244d77"},
+  {name:"鞋把", emoji:"👞", color:"#e5b94f"},
+  {name:"襪子", emoji:"🧦", color:"#2c7890"},
+  {name:"現金折扣 $500", emoji:"🎟️", color:"#d96b52"},
+  {name:"現金折扣 $600", emoji:"💵", color:"#527a55"},
+  {name:"現金折扣 $800", emoji:"💰", color:"#7d5b99"},
+  {name:"最大獎：BAW 鞋款一雙", emoji:"🏆", color:"#e9a82f", jackpot:true}
+];
+let prizes = initialPrizes.slice();
+let db = null;
+let firestoreApi = null;
+if (useSharedJackpot) {
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    firestoreApi = { doc, getDoc, runTransaction };
+    const stateRef = doc(db, "bawDraw", "jackpot");
+    const stateSnap = await getDoc(stateRef);
+    sharedJackpotClaimed = stateSnap.exists() && stateSnap.data().claimed === true;
+    if (sharedJackpotClaimed) {
+      prizes = prizes.filter(p => !p.jackpot);
+      jackpotWon = true;
+      statusTextSafe("最大獎已由現場顧客抽出，所有手機已同步移除。");
+    }
+  } catch (e) {
+    console.warn("Firebase 尚未完成設定，使用本機展示模式。", e);
+  }
+}
+function statusTextSafe(msg) {
+  const el = document.getElementById("status");
+  if (el) el.textContent = msg;
+}
+
+let angle = 0, spinning = false, jackpotWon = false;
+const wheel = document.getElementById("wheel"), ctx = wheel.getContext("2d");
+const spinBtn = document.getElementById("spinBtn");
+const statusText = document.getElementById("status");
+function drawWheel(){
+  const cx=450, cy=450, r=420;
+  ctx.clearRect(0,0,900,900);
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
+  const slice=Math.PI*2/prizes.length;
+  prizes.forEach((p,i)=>{
+    const start=i*slice-Math.PI/2, end=start+slice;
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,r,start,end);ctx.closePath();
+    ctx.fillStyle=p.color;ctx.fill();
+    ctx.lineWidth=8;ctx.strokeStyle="#fff4d6";ctx.stroke();
+    ctx.save();ctx.rotate(start+slice/2);ctx.translate(r*.67,0);ctx.rotate(Math.PI/2);
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.font=p.jackpot?"bold 29px sans-serif":"bold 31px sans-serif";
+    ctx.fillStyle="#fff";ctx.shadowColor="#0005";ctx.shadowBlur=4;
+    const label=p.name.replace("最大獎：","最大獎\n");
+    const lines=label.split("\n");
+    if(p.jackpot){ctx.fillText("🏆",0,-24);ctx.font="bold 25px sans-serif";ctx.fillText("最大獎",0,10);ctx.fillText("唯一雙鞋",0,42);}
+    else {ctx.fillText(p.emoji,0,-20);ctx.font="bold 27px sans-serif";ctx.fillText(p.name,0,20);}
+    ctx.restore();
+  });
+  ctx.restore();
+  ctx.beginPath();ctx.arc(cx,cy,r+2,0,Math.PI*2);ctx.lineWidth=18;ctx.strokeStyle="#f8d778";ctx.stroke();
+}
+function updateList(){
+  const list=document.getElementById("prizeList");list.innerHTML="";
+  prizes.forEach(p=>{
+    const div=document.createElement("div");div.className="prize"+(p.jackpot?" big":"");
+    div.innerHTML=`<span class="emoji">${p.emoji}</span><span>${p.name}</span>${p.jackpot?'<strong>限量 1 名</strong>':""}`;
+    list.appendChild(div);
+  });
+  if(jackpotWon) statusText.textContent="最大獎已抽出！鞋款獎項已從轉盤移除。";
+}
+function easeOut(t){return 1-Math.pow(1-t,5)}
+async function spin(){
+  if(spinning||prizes.length===0)return;
+  spinning=true;spinBtn.disabled=true;spinBtn.textContent="轉盤旋轉中…";
+  let selectedIndex=Math.floor(Math.random()*prizes.length);
+  // If the shared jackpot is already claimed elsewhere, never award it again.
+  if (prizes[selectedIndex]?.jackpot && db && firestoreApi) {
+    try {
+      const stateRef = firestoreApi.doc(db, "bawDraw", "jackpot");
+      const didClaim = await firestoreApi.runTransaction(db, async (tx) => {
+        const snap = await tx.get(stateRef);
+        if (snap.exists() && snap.data().claimed === true) return false;
+        tx.set(stateRef, { claimed: true, claimedAt: Date.now() });
+        return true;
+      });
+      if (!didClaim) {
+        prizes = prizes.filter(p => !p.jackpot);
+        selectedIndex = Math.floor(Math.random() * prizes.length);
+        updateList(); drawWheel();
+      } else {
+        sharedJackpotClaimed = true;
+      }
+    } catch (e) {
+      alert("目前無法確認最大獎狀態，請檢查網路或 Firebase 設定後再抽。");
+      spinning=false;spinBtn.disabled=false;spinBtn.textContent="🎯 開始抽獎";return;
+    }
+  }
+  const slice=Math.PI*2/prizes.length;
+  // The pointer is at the top; rotate selected segment center to the pointer.
+  const targetMod=((Math.PI*2-(selectedIndex*slice+slice/2-Math.PI/2))%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+  const currentMod=((angle%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+  const delta=((targetMod-currentMod)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+  const start=angle, end=angle+Math.PI*2*(5+Math.floor(Math.random()*3))+delta, duration=4700, begin=performance.now();
+  function frame(now){
+    const t=Math.min(1,(now-begin)/duration);angle=start+(end-start)*easeOut(t);drawWheel();
+    if(t<1)requestAnimationFrame(frame);
+    else{
+      angle=((angle%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+      spinning=false;spinBtn.disabled=false;spinBtn.textContent="🎯 再抽一次";
+      const prize=prizes[selectedIndex];showResult(prize);
+      if(prize.jackpot){jackpotWon=true;prizes=prizes.filter(p=>!p.jackpot);updateList();drawWheel();}
+    }
+  }
+  requestAnimationFrame(frame);
+}
+function showResult(p){
+  const card=document.getElementById("resultCard");
+  const isBig=!!p.jackpot;
+  card.classList.toggle("jackpot",isBig);
+  document.getElementById("resultEmoji").textContent=isBig?"🏆🎉":"🎉";
+  document.getElementById("resultTitle").textContent=isBig?"恭喜抽中最大獎！":"恭喜中獎！";
+  document.getElementById("resultText").textContent=isBig?"你抽中了全場唯一一雙 BAW 鞋款！快把這份好運帶回家！":`你的幸運獎項是「${p.name}」！請向現場工作人員兌獎。`;
+  document.getElementById("result").classList.add("show");
+  if(isBig)launchConfetti();else launchConfetti(65);
+}
+document.getElementById("closeResult").addEventListener("click",()=>document.getElementById("result").classList.remove("show"));
+document.getElementById("result").addEventListener("click",e=>{if(e.target.id==="result")e.currentTarget.classList.remove("show")});
+spinBtn.addEventListener("click",spin);
+drawWheel();
+const confetti=document.getElementById("confetti"), cctx=confetti.getContext("2d");let particles=[], animating=false;
+function resizeConfetti(){confetti.width=innerWidth*devicePixelRatio;confetti.height=innerHeight*devicePixelRatio;cctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
+window.addEventListener("resize",resizeConfetti);resizeConfetti();
+function launchConfetti(count=180){
+  const colors=["#ffd36a","#fff5d6","#f45d5d","#60d5ce","#75aaff","#d88bff"];
+  for(let i=0;i<count;i++)particles.push({x:innerWidth/2+(Math.random()-.5)*innerWidth*.6,y:-20-Math.random()*innerHeight*.25,vx:(Math.random()-.5)*8,vy:2+Math.random()*6,size:4+Math.random()*7,rot:Math.random()*6,vr:(Math.random()-.5)*.2,color:colors[Math.floor(Math.random()*colors.length)],life:100+Math.random()*80});
+  if(!animating){animating=true;requestAnimationFrame(tick)}
+}
+function tick(){
+  cctx.clearRect(0,0,innerWidth,innerHeight);
+  particles=particles.filter(p=>p.life>0&&p.y<innerHeight+30);
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.035;p.rot+=p.vr;p.life--;cctx.save();cctx.translate(p.x,p.y);cctx.rotate(p.rot);cctx.fillStyle=p.color;cctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*.65);cctx.restore()});
+  if(particles.length){requestAnimationFrame(tick)}else{animating=false;cctx.clearRect(0,0,innerWidth,innerHeight)}
+}
+</script>
+</body>
+</html>
